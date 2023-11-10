@@ -81,4 +81,46 @@ impl Chip8 {
         self.sp -= 1;
         self.stack[self.sp as usize]
     }
+
+    pub fn tick(&mut self) {
+        // Fetch
+        let op: u16 = self.fetch();
+        // Decode && Execute
+    }
+
+    /*
+     * Read the instruction that PC is currently pointing at from memory.
+     * An instruction is two bytes, so we need to read two successive bytes from memory
+     * and combine them into one 16-bit instruction.
+     */
+    fn fetch(&mut self) -> u16 {
+        let high_byte: u16 = self.ram[self.pc as usize] as u16;
+        let low_byte: u16 = self.ram[(self.pc + 1) as usize] as u16;
+        let op: u16 = (high_byte << 8) | low_byte;
+        self.pc += 2;
+        op
+    }
+
+    pub fn tick_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        if self.st > 0 {
+            if self.st == 1 {
+                // TODO: beep
+            }
+            self.st -= 1;
+        }
+    }
+
+    fn execute(&mut self, op: u16) {
+        let digit1: u16 = (op & 0xF000) >> 12;
+        let digit2: u16 = (op & 0x0F00) >> 8;
+        let digit3: u16 = (op & 0x00F0) >> 4;
+        let digit4: u16 = (op & 0xF00F);
+        match (digit1, digit2, digit3, digit4) {
+            (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
+        }
+    }
 }
