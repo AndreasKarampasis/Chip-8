@@ -72,6 +72,13 @@ impl Chip8 {
         self.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
     }
 
+    pub fn tick(&mut self) {
+        // Fetch
+        let op: u16 = self.fetch();
+        // Decode && Execute
+        self.execute(op);
+    }
+
     pub fn get_display(&self) -> &[bool] {
         &self.display
     }
@@ -95,12 +102,6 @@ impl Chip8 {
     fn pop(&mut self) -> u16 {
         self.sp -= 1;
         self.stack[self.sp as usize]
-    }
-
-    pub fn tick(&mut self) {
-        // Fetch
-        let _op: u16 = self.fetch();
-        // Decode && Execute
     }
 
     /*
@@ -130,11 +131,99 @@ impl Chip8 {
     }
 
     fn execute(&mut self, op: u16) {
-        let digit1: u16 = (op & 0xF000) >> 12;
-        let digit2: u16 = (op & 0x0F00) >> 8;
-        let digit3: u16 = (op & 0x00F0) >> 4;
-        let digit4: u16 = op & 0xF00F;
+        let digit1 = (op & 0xF000) >> 12;
+        let digit2 = (op & 0x0F00) >> 8;
+        let digit3 = (op & 0x00F0) >> 4;
+        let digit4 = op & 0x000F;
         match (digit1, digit2, digit3, digit4) {
+            (0x0, 0x0, 0xE, 0x0) => {
+                // Clear screen
+                self.display = [false; DISPLAY_WIDTH * DISPLAY_HEIGHT];
+            }
+            (0x0, 0x0, 0xE, 0xE) => {
+                // Return from a subroutine
+                let addr = self.pop();
+                self.pc = addr;
+            }
+            (0x1, _, _, _) => {
+                // Jump to location nnnn
+                let nnn: u16 = op & 0x0FFF;
+                self.pc = nnn;
+            }
+            (0x2, _, _, _) => {
+                // Call subroutine at nnn
+                let nnn = op & 0x0FFF;
+                self.push(self.pc);
+                self.pc = nnn;
+            }
+            (0x3, _, _, _) => {
+                // Skip the next instruction if Vx = nn;
+                let x = digit2;
+                let nn = (op & 0x00FF) as u8;
+                if self.v[x as usize] == nn {
+                    self.pc += 2;
+                }
+            }
+            (0x4, _, _, _) => {
+                // Skip the next instruction if Vx != nn
+                let x = digit2;
+                let nn = (op & 0x00FF) as u8;
+                if self.v[x as usize] != nn {
+                    self.pc += 2;
+                }
+            }
+            (0x5, _, _, 0x0) => {
+                // Skip the next instruction if Vx = Vy
+                let x = digit2;
+                let y = digit3;
+                if self.v[x as usize] == self.v[y as usize] {
+                    self.pc += 2;
+                }
+            }
+            (0x6, _, _, _) => {
+                // Set Vx = kk
+                let x = digit2 as usize;
+                let nn = (op & 0x00FF) as u8;
+                self.v[x] = nn;
+            }
+            (0x7, _, _, _) => {
+                // Set Vx = Vx + kk
+                let x = digit2 as usize;
+                let nn = (op & 0x00FF) as u8;
+                self.v[x] = self.v[x].wrapping_add(nn);
+            }
+            (0xA, _, _, _) => {
+                // Set I = nnn
+                let nnn: u16 = op & 0x0FFF;
+                self.i = nnn;
+            }
+            (0xD, _, _, _) => {
+                //  Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+                let x_coor = self.v[digit2 as usize] as u16;
+                let y_coor = self.v[digit3 as usize] as u16;
+                let height = digit4;
+
+                // keep track if any pixels gets flipped
+                let mut flipped = false;
+
+                for y_line in 0..height {
+                    let addr = self.i + y_line;
+                    let pixels = self.ram[addr as usize];
+                    for x_line in 0..8 {
+                        let pixel = pixels & (0b1000_0000 >> x_line);
+                        if pixel != 0 {
+                            let x = (x_coor + x_line) as usize % DISPLAY_WIDTH;
+                            let y = (y_coor + y_line) as usize % DISPLAY_HEIGHT;
+
+                            // Get index of pixel to 1D
+                            let index = x + DISPLAY_WIDTH * y;
+                            flipped |= self.display[index];
+                            self.display[index] ^= true;
+                        }
+                    }
+                }
+                self.v[0xF] = flipped as u8;
+            }
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
         }
     }
