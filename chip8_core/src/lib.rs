@@ -1,6 +1,6 @@
 const RAM_SIZE: usize = 4096;
-const DISPLAY_WIDTH: usize = 64;
-const DISPLAY_HEIGHT: usize = 32;
+pub const DISPLAY_WIDTH: usize = 64;
+pub const DISPLAY_HEIGHT: usize = 32;
 const NUM_REGS: usize = 16;
 const STACK_SIZE: usize = 16;
 const NUM_KEYS: usize = 16;
@@ -71,6 +71,21 @@ impl Chip8 {
         self.st = 0;
         self.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
     }
+
+    pub fn get_display(&self) -> &[bool] {
+        &self.display
+    }
+
+    pub fn keypress(&mut self, idx: usize, pressed: bool) {
+        self.keys[idx] = pressed;
+    }
+
+    pub fn load(&mut self, data: &[u8]) {
+        let start: usize = START_ADDR as usize;
+        let end: usize = (START_ADDR as usize) + data.len();
+        self.ram[start..end].copy_from_slice(data);
+    }
+
     // Add given 16-bit value to the spot pointed by the stack pointer
     fn push(&mut self, val: u16) {
         self.stack[self.sp as usize] = val;
@@ -84,7 +99,7 @@ impl Chip8 {
 
     pub fn tick(&mut self) {
         // Fetch
-        let op: u16 = self.fetch();
+        let _op: u16 = self.fetch();
         // Decode && Execute
     }
 
@@ -118,7 +133,7 @@ impl Chip8 {
         let digit1: u16 = (op & 0xF000) >> 12;
         let digit2: u16 = (op & 0x0F00) >> 8;
         let digit3: u16 = (op & 0x00F0) >> 4;
-        let digit4: u16 = (op & 0xF00F);
+        let digit4: u16 = op & 0xF00F;
         match (digit1, digit2, digit3, digit4) {
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
         }
