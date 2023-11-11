@@ -85,10 +85,20 @@ impl Chip8 {
         &self.display
     }
 
+    /*
+     * It takes the index of the key that has been pressed and sets the value.
+     */
     pub fn keypress(&mut self, idx: usize, pressed: bool) {
-        self.keys[idx] = pressed;
+        if idx < 16 {
+            self.keys[idx] = pressed;
+        }
     }
 
+    /*
+     * Load the game into RAM beggining at 0x200. The first 512 bytes
+     * of RAM aren't to contain game data, and are empty except for
+     * the character sprite data we store there.
+     */
     pub fn load(&mut self, data: &[u8]) {
         let start: usize = START_ADDR as usize;
         let end: usize = (START_ADDR as usize) + data.len();

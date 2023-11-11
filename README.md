@@ -12,6 +12,9 @@
 - 16 8-bit general-purpose *variable registers* numbered 0 through F hexadecimal, called V0-VF
   - VF is also used as a flag reister; many instructions will set it to either 1 or 0 based on some rule, for example using it as a carry flag.
 
+## How to use
+
 ## Credits
+
 - [Cowgod's Chip-8 Technical Reference v1.0](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
-- [Tobias V. Langhoff's Guide to making a CHIP-8 emulator ](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
+- [Tobias V. Langhoff's Guide to making a CHIP-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
